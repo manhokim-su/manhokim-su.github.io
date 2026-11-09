@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>도메인·호스팅 만료 현황</title>
+<style>
+  :root {
+    --bg: #f6f7f9;
+    --card: #ffffff;
+    --text: #1f2328;
+    --muted: #656d76;
+    --line: #d8dee4;
+    --head: #eef1f4;
+    --danger: #d1242f;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0d1117;
+      --card: #161b22;
+      --text: #e6edf3;
+      --muted: #8d96a0;
+      --line: #30363d;
+      --head: #1f252d;
+      --danger: #ff6b6b;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 32px 16px;
+    background: var(--bg);
+    color: var(--text);
+    font-family: "맑은 고딕", "Malgun Gothic", -apple-system, "Segoe UI", sans-serif;
+  }
+  main { max-width: 860px; margin: 0 auto; }
+  h1 { font-size: 22px; margin: 0 0 6px; }
+  .today { color: var(--muted); margin: 0 0 20px; font-size: 14px; }
+  .wrap {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    overflow-x: auto;
+  }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  th, td {
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--line);
+    text-align: left;
+    white-space: nowrap;
+  }
+  th { background: var(--head); font-weight: 600; }
+  tr:last-child td { border-bottom: none; }
+  td.num { text-align: right; font-variant-numeric: tabular-nums; }
+  td.date { font-variant-numeric: tabular-nums; }
+  tr.warn td { color: var(--danger); font-weight: 600; }
+  .note { color: var(--muted); font-size: 13px; margin-top: 12px; }
+</style>
+</head>
+<body>
+<main>
+  <h1>도메인·호스팅 만료 현황</h1>
+  <p class="today" id="today"></p>
+
+  <div class="wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>서비스</th>
+          <th>구분</th>
+          <th>시작일</th>
+          <th>만료일</th>
+          <th>잔여일</th>
+          <th>비고</th>
+        </tr>
+      </thead>
+      <tbody id="rows"></tbody>
+    </table>
+  </div>
+  <p class="note">잔여일은 오늘 날짜 기준으로 계산합니다. 만료 30일 이내 또는 만료된 항목은 빨간색으로 표시합니다.</p>
+</main>
+
+<script>
+  // 서비스, 구분, 시작일(없으면 null), 만료일, 비고
+  const items = [
+    ["Insight",  "호스팅", null,         "2027-04-07", ""],
+    ["시간입력", "호스팅", null,         "2027-04-13", ""],
+    ["eqa",      "도메인", "2026-10-15", "2027-10-15", ""],
+    ["eqa",      "호스팅", "2026-10-15", "2027-04-15", "도메인 플러스 (6개월)"],
+    ["allergy",  "도메인", "2026-11-05", "2027-11-05", ""],
+  ];
+
+  const WARN_DAYS = 30;
+  const DAY_MS = 24 * 60 * 60 * 1000;
+  const WEEK = ["일", "월", "화", "수", "목", "금", "토"];
+
+  function parse(s) {
+    const [y, m, d] = s.split("-").map(Number);
+    return new Date(y, m - 1, d);
+  }
+  function fmt(dt) {
+    const p = n => String(n).padStart(2, "0");
+    return `${dt.getFullYear()}-${p(dt.getMonth() + 1)}-${p(dt.getDate())}`;
+  }
+
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  document.getElementById("today").textContent =
+    `오늘 : ${fmt(today)} (${WEEK[today.getDay()]})`;
+
+  const tbody = document.getElementById("rows");
+  for (const [name, kind, start, end, note] of items) {
+    const left = Math.round((parse(end) - today) / DAY_MS);
+    const tr = document.createElement("tr");
+    if (left <= WARN_DAYS) tr.className = "warn";
+
+    const cells = [
+      [name, ""],
+      [kind, ""],
+      [start ?? "-", "date"],
+      [end, "date"],
+      [left >= 0 ? `${left}일` : `만료 (${-left}일 경과)`, "num"],
+      [note, ""],
+    ];
+    for (const [text, cls] of cells) {
+      const td = document.createElement("td");
+      td.textContent = text;
+      if (cls) td.className = cls;
+      tr.appendChild(td);
+    }
+    tbody.appendChild(tr);
+  }
+</script>
+</body>
+</html>
